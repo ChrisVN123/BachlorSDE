@@ -91,18 +91,22 @@ def simulate_forecast(mu, sigma, historical_prices, forecast_steps, T, N=100):
 # --- Main Code ---
 
 #If you haven't downloaded the data before, uncomment the following lines:
-# df = yf.download("AAPL", start="2010-01-01", end="2025-01-01", progress=False, interval="1d")
+#df = yf.download("NVO", start="2010-01-01", end="2025-01-01", progress=False, interval="1d")
+ticker = "SPY"
+df = yf.Ticker(ticker).history(period="5y")
+print(f"Summary of Historical Data for {ticker}:")
+prices_numpy = df["Close"].to_numpy()
 # df.to_csv("AAPL_data.csv")
 
 # Read the CSV file. Adjust if your CSV has dates.
-df = pd.read_csv("AAPL_data.csv")
+#df = pd.read_csv("AAPL_data.csv")
 # If your CSV doesn't have a proper date column, the index will be a simple integer index.
 
 # Plot the full historical data.
 #plot_full_history(df)
 
 # Convert the Close prices to a NumPy array.
-prices_numpy = df["Close"].to_numpy()
+
 
 # Define the time increment between observations.
 delta_t = 1  # adjust as needed (e.g., 1 for weekly or daily data)
@@ -113,7 +117,7 @@ print("Estimated μ:", mu)
 print("Estimated σ:", sigma)
 
 # Define the forecast horizon: for example, forecast the last 100 steps.
-forecast_steps = 200
+forecast_steps = 100
 T = forecast_steps * delta_t  # Total forecast time horizon
 
 # Run N simulations and plot the average GBM path with true historical values.
