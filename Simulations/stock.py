@@ -6,10 +6,10 @@ import numpy as np
 def plot_full_history(df):
     """Plot the full historical closing prices."""
     plt.figure(figsize=(10, 5))
-    plt.plot(df.index, df["Close"], label="Historical AAPL Close")
-    plt.xlabel("Index (Time Step)")
+    plt.plot(df.index, df["Close"], label=f"Historical {df.name if hasattr(df, 'name') else ''} Close")
+    plt.xlabel("Date")
     plt.ylabel("Close Price")
-    plt.title("AAPL Historical Close Prices")
+    plt.title("Historical Close Prices")
     plt.legend()
     plt.show()
 
@@ -37,7 +37,7 @@ def compute_drift_and_diffusion(prices, delta_t):
     sigma = np.sqrt(np.sum((dlog - mu * delta_t)**2) / (n * delta_t))
     return mu, sigma
 
-def simulate_forecast(mu, sigma, historical_prices, forecast_steps, T, N=100):
+def simulate_forecast(mu, sigma, historical_prices, forecast_steps, T=1, N=100):
     """
     Run N GBM simulations over the forecast horizon, compute the average simulated path,
     and plot it together with the true historical values.
@@ -88,37 +88,37 @@ def simulate_forecast(mu, sigma, historical_prices, forecast_steps, T, N=100):
     plt.legend()
     plt.show()
 
-# --- Main Code ---
-
-#If you haven't downloaded the data before, uncomment the following lines:
-#df = yf.download("NVO", start="2010-01-01", end="2025-01-01", progress=False, interval="1d")
-ticker = "SPY"
-df = yf.Ticker(ticker).history(period="5y")
-print(f"Summary of Historical Data for {ticker}:")
-prices_numpy = df["Close"].to_numpy()
-# df.to_csv("AAPL_data.csv")
-
-# Read the CSV file. Adjust if your CSV has dates.
-#df = pd.read_csv("AAPL_data.csv")
-# If your CSV doesn't have a proper date column, the index will be a simple integer index.
-
-# Plot the full historical data.
-#plot_full_history(df)
-
-# Convert the Close prices to a NumPy array.
+def get_data(ticker):
+    """
+    Fetch historical data for the given ticker over the past 5 years.
+    
+    Returns:
+        prices (np.array): Closing prices as a NumPy array.
+        df (DataFrame): The full historical data.
+    """
+    ticker_obj = yf.Ticker(ticker)
+    df = ticker_obj.history(period="5y")
+    df.index = pd.to_datetime(df.index)
+    # Optionally, set a name for the dataframe for labeling purposes.
+    df.name = ticker.upper()
+    prices = df["Close"].to_numpy()
+    return prices, df
 
 
-# Define the time increment between observations.
-delta_t = 1  # adjust as needed (e.g., 1 for weekly or daily data)
+# prices_numpy = get_data("AAPL")
+# #print(prices_numpy)
 
-# Estimate the drift (mu) and volatility (sigma) using log returns.
-mu, sigma = compute_drift_and_diffusion(prices=prices_numpy, delta_t=delta_t)
-print("Estimated μ:", mu)
-print("Estimated σ:", sigma)
+# # Define the time increment between observations.
+# delta_t = 1  # adjust as needed (e.g., 1 for weekly or daily data)
 
-# Define the forecast horizon: for example, forecast the last 100 steps.
-forecast_steps = 100
-T = forecast_steps * delta_t  # Total forecast time horizon
+# # Estimate the drift (mu) and volatility (sigma) using log returns.
+# mu, sigma = compute_drift_and_diffusion(prices=prices_numpy, delta_t=delta_t)
+# print("Estimated μ:", mu)
+# print("Estimated σ:", sigma)
 
-# Run N simulations and plot the average GBM path with true historical values.
-simulate_forecast(mu, sigma, prices_numpy, forecast_steps, T, N=9)
+# # Define the forecast horizon: for example, forecast the last 100 steps.
+# forecast_steps = 100
+# T = forecast_steps * delta_t  # Total forecast time horizon
+
+# # Run N simulations and plot the average GBM path with true historical values.
+# simulate_forecast(mu, sigma, prices_numpy, forecast_steps, T, N=9)
