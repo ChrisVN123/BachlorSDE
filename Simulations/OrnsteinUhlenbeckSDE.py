@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
 '''
 This PDE is called Ornstein-Uhlenbeck process
 The model is a "revert to the mean" model
@@ -14,7 +14,7 @@ theta = 0.7   # Mean reversion strength
 mu = 1.0      # Long-term mean
 sigma = 0.5   # Volatility
 X0 = 0        # Initial condition
-T = 10        # Total time
+T = 100        # Total time
 dt = 0.01     # Time step
 N = int(T / dt)  # Number of steps
 
