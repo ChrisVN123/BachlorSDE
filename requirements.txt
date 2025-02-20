@@ -1,2 +1,6 @@
 numpy
 matplotlib
+yfinance
+dash
+pandas
+plotly
