@@ -20,10 +20,10 @@ app.layout = html.Div([
         dcc.Input(id='forecast-days', type='number', value=100, style={'marginRight': '20px'}),
         
         html.Label("Number of Simulations:"),
-        dcc.Input(id='num-simulations', type='number', value=100, style={'marginRight': '20px'}),
+        dcc.Input(id='num-simulations', type='number', value=10, style={'marginRight': '20px'}),
         
         html.Label("Future Forecast Days:"),
-        dcc.Input(id='future-forecast-days', type='number', value=30, style={'marginRight': '20px'}),
+        dcc.Input(id='future-forecast-days', type='number', value=200, style={'marginRight': '20px'}),
         
         html.Button("Run Simulation", id='run-button', n_clicks=0)
     ], style={'marginBottom': '20px'}),
@@ -70,15 +70,17 @@ def run_simulation(n_clicks, ticker, forecast_days, num_simulations, future_fore
         return {}, {}, f"Error fetching data for {ticker}: {e}", ""
     
     # Compute drift and volatility (assuming daily data, so delta_t = 1)
-    mu, sigma = stock.compute_drift_and_diffusion(prices, delta_t=1)
-    
+    #mu, sigma = stock.compute_drift_and_diffusion(prices, delta_t=1)
+    # Instead of using the full prices array:
+    past_prices = prices[:start_index]  # Exclude future data
+    mu, sigma = stock.compute_drift_and_diffusion(past_prices, delta_t=1)
+
     # -----------------------------------------
     # 1. Historical Forecast Plot (Last N Days)
     # -----------------------------------------
     dt = 1  # 1 day per step
     start_index = -forecast_days
     initial_hist = prices[start_index]
-    
     # Run simulations starting from forecast_days back
     simulations_hist = np.zeros((num_simulations, forecast_days))
     simulations_hist[:, 0] = initial_hist

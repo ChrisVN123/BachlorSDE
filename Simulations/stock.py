@@ -54,11 +54,11 @@ def simulate_forecast(mu, sigma, historical_prices, forecast_steps, T=1, N=100):
     # Simulation starting point: price forecast_steps back from the end.
     start_index = -forecast_steps
     initial = historical_prices[start_index]
-    
+
     # Pre-allocate array for simulations: shape (N, forecast_steps)
     simulations = np.zeros((N, forecast_steps))
     simulations[:, 0] = initial  # All simulations start at the same initial price
-    
+
     # Set seed for reproducibility.
     np.random.seed(42)
     
@@ -105,7 +105,7 @@ def get_data(ticker):
     return prices, df
 
 
-# prices_numpy = get_data("AAPL")
+# prices_numpy, df = get_data("AAPL")
 # #print(prices_numpy)
 
 # # Define the time increment between observations.
