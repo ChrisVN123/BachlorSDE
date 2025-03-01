@@ -28,7 +28,6 @@ for(i in 1:(length(t.sim)-1)) {
   x[i+1] = x[i] + pars[1]*(pars[2]-x[i]+u.sim[i])*dt.sim + pars[3]*dw[i]
 }
 
-pars[1]
 # Extract observations and add noise
 dt.obs = 1e-2
 ids = seq(1,length(t.sim),by=round(dt.obs / dt.sim))
@@ -127,6 +126,7 @@ plot2 = ggplot() +
   labs(title="10 Step Predictions vs Observations", x="Time", y="") +
   theme_minimal()
 
+length(pred10step$x)
 plot(plot2)
 
 # Perform full prediction without data update
