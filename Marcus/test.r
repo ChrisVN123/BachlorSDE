@@ -1,62 +1,50 @@
 install.packages("reshape2")
+install.packages("httpgd")
+install.packages("languageserver")
+remotes::install_github(repo="phillipbvetter/ctsmTMB", dependencies=TRUE)
+
+library(TMB)
+runExample(all=TRUE)
+
 library(ggplot2)
 library(patchwork)
 library(dplyr)
 library(reshape2)
 library(ctsmTMB)
 
-# Get content into a data frame
-data <- read.csv("ctsm/EnergyPrices/priceData.csv",
-                header = TRUE, sep = ";")
-     
-
-# Remove nan values
-delete.na <- function(data, n=0) {
-  data[rowSums(is.na(data)) <= n,]
-}
-
-df <- delete.na(data)
-df_time <- df[,'t']
-time <- seq(0,length(df_time)-1,by=1)
-spot <- abs(df[,'Spot.price'])
-
-
-#Extract a subset of observations
-# num_obs = 1000
-# ids = seq(1,length(df_time),by=round(length(df_time) / num_obs))
-# time_obs = time[ids]
-# spot_obs = spot[ids]
-# plot(time_obs,spot_obs)
-
+############################################################
+# Data simulation
+############################################################
 
 # Simulate data using Euler Maruyama
 set.seed(20)
-pars = c(theta=10, mu=mean(spot), sigma_x=sd(spot), sigma_y=0.1)
-
-dt.sim = 1
-t.sim = time
+pars = c(theta=10, mu=1, sigma_x=1, sigma_y=0.1)
+# 
+dt.sim = 1e-3
+t.sim = seq(0,5,by=dt.sim)
 dw = rnorm(length(t.sim)-1,sd=sqrt(dt.sim))
 u.sim = cumsum(rnorm(length(t.sim),sd=0.05))
+x = 3
+for(i in 1:(length(t.sim)-1)) {
+  x[i+1] = x[i] + pars[1]*(pars[2]-x[i]+u.sim[i])*dt.sim + pars[3]*dw[i]
+}
 
-x = spot
-t.obs = time
-y = spot
-
-# # Extract observations and add noise
-# t.obs = t.sim[ids]
-# # forcing input
-# u = u.sim[ids]
-# dw = dw[ids]
-# t.sim = t.sim[ids]
+# Extract observations and add noise
+dt.obs = 1e-2
+ids = seq(1,length(t.sim),by=round(dt.obs / dt.sim))
+t.obs = t.sim[ids]
+y = x[ids] + pars[4] * rnorm(length(t.obs))
+# forcing input
+u = u.sim[ids]
 
 # Create data
 .data = data.frame(
-  t = time,
-  y = spot,
-  u = u.sim
+  t = t.obs,
+  y = y,
+  u = u
 )
 
-
+plot(u,y)
 ############################################################
 # Model creation and estimation
 ############################################################
@@ -71,6 +59,7 @@ model$setModelname("ornstein_uhlenbeck")
 model$addSystem(
   dx ~ theta * (mu-x+u) * dt + sigma_x*dw
 )
+
 # Add observation equations
 model$addObs(
   y ~ x
@@ -121,9 +110,6 @@ plot1 = ggplot() +
   labs(title="1-Step State Estimates vs Observations", x="Time", y="") +
   theme_minimal()
 
-length(y)
-plot(plot1)
-
 # Predict to obtain k-step-ahead predictions to see model forecasting ability
 pred.list = model$predict(data=.data, 
                         k.ahead=10, 
@@ -141,9 +127,6 @@ plot2 = ggplot() +
   geom_point(aes(x=t.obs,y=y),color="tomato",size=1) +
   labs(title="10 Step Predictions vs Observations", x="Time", y="") +
   theme_minimal()
-
-pred10step$var.x
-plot(plot2)
 
 # Perform full prediction without data update
 pred.list = model$predict(data=.data, 
@@ -171,9 +154,15 @@ plot3 = ggplot() +
   labs(title="No Update Prediction and Simulations vs Observations", x="Time", y="") +
   theme_minimal() + theme(legend.position = "none")
 
-plot(plot3)
 # Draw both plots
 patchwork::wrap_plots(plot1, plot2, plot3, ncol=1)
-# Plot one-step-ahead residual analysis using the command below
-plot(fit)
 
+plot(wrap_plots)
+# Plot one-step-ahead residual analysis using the command below
+# plot(fit)
+
+x<-rnorm(10)
+y<-rnorm(10)
+print(x)
+
+plot(x,y)
