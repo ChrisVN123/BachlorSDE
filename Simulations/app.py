@@ -72,7 +72,7 @@ def run_simulation(n_clicks, ticker, forecast_days, num_simulations, future_fore
     # Compute drift and volatility (assuming daily data, so delta_t = 1)
     #mu, sigma = stock.compute_drift_and_diffusion(prices, delta_t=1)
     # Instead of using the full prices array:
-    past_prices = prices[:start_index]  # Exclude future data
+    past_prices = prices[:forecast_days]  # Exclude future data
     mu, sigma = stock.compute_drift_and_diffusion(past_prices, delta_t=1)
 
     # -----------------------------------------

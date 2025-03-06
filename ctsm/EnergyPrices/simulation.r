@@ -94,7 +94,7 @@ model$addInput(u)
 # Specify parameter initial values and lower/upper bounds in estimation
 model$setParameter(
   logtheta    = log(c(initial = 1, lower=1e-5, upper=50)),
-  mu          = c(initial=1.5, lower=0, upper=5),
+  mu          = c(initial=1.5, lower=-10, upper=10),
   logsigma_x  = log(c(initial=1, lower=1e-10, upper=30)),
   logsigma_y  = log(c(initial=1e-1, lower=1e-10, upper=30))
 )
