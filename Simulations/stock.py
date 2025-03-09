@@ -88,7 +88,7 @@ def simulate_forecast(mu, sigma, historical_prices, forecast_steps, T=1, N=100):
     plt.legend()
     plt.show()
 
-def get_data(ticker):
+def get_data(ticker,num_years):
     """
     Fetch historical data for the given ticker over the past 5 years.
     
@@ -97,7 +97,7 @@ def get_data(ticker):
         df (DataFrame): The full historical data.
     """
     ticker_obj = yf.Ticker(ticker)
-    df = ticker_obj.history(period="5y")
+    df = ticker_obj.history(period=f"{num_years}y")
     df.index = pd.to_datetime(df.index)
     # Optionally, set a name for the dataframe for labeling purposes.
     df.name = ticker.upper()

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
+from stock import get_data, compute_drift_and_diffusion
 
 def simulate_gbm(S0=100, mu=0.05, sigma=0.2, T=1.0, N=252, seed=42):
     """
@@ -48,11 +49,15 @@ def negative_log_likelihood(params, S, dt):
 
 #-----------------------------------------------------
 # 1) Simulate a path (if you don't have real data)
-S_data = simulate_gbm(mu=0.05, sigma=0.2, T=1.0, N=252)
-
+#S_data = simulate_gbm(mu=0.05, sigma=0.2, T=1.0, N=252)
+S_data,df = get_data("AAPL",1)
+print(S_data)
 # 2) Set up a guess for (mu, sigma) and define dt
 initial_guess = [0.1, 0.3]    # e.g. some guess
 dt = 1.0/252
+
+bench = compute_drift_and_diffusion(S_data,dt)
+print(bench)
 
 # 3) Optimize
 bounds = [(None, None), (1e-12, None)]  # keep sigma > 0
