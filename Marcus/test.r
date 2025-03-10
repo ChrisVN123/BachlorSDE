@@ -1,8 +1,8 @@
-install.packages("reshape2")
-install.packages("httpgd")
-install.packages("languageserver")
+# install.packages("reshape2")
+# install.packages("httpgd")
+# install.packages("languageserver")
 remotes::install_github(repo="phillipbvetter/ctsmTMB", dependencies=TRUE)
-print("Hello World!")
+
 
 library(TMB)
 runExample(all=TRUE)
