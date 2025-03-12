@@ -122,7 +122,7 @@ plot2 = ggplot() +
                   ymin=pred10step$x-2*sqrt(pred10step$var.x),
                   ymax=pred10step$x+2*sqrt(pred10step$var.x)),fill="grey", alpha=0.9) +
   geom_line(aes(x=pred10step$t.j,pred10step$x),color="steelblue",lwd=1) +
-  geom_point(aes(x=t.obs,y=y),color="tomato",size=1) +
+  geom_point(aes(x=t.obs,y=y),color="#881c09",size=1) +
   labs(title="10 Step Predictions vs Observations", x="Time", y="") +
   theme_minimal()
 
