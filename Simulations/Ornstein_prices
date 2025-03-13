@@ -111,13 +111,13 @@ if __name__ == "__main__":
 
     # Example slice: from index=12000 to 12750
     # Add 1e-10 to avoid zero if you do want to keep it strictly positive.
-    prices = df_prices.values[12000:12250]
-    prices = prices + 1e-10
+    prices = df_prices.values[12000:12100]
+    #prices = np.abs(prices) + 1e-10
     # Drop any NaNs
     prices = prices[~np.isnan(prices)]
 
     # Optional: create a corresponding time index
-    hours = df_prices.index[12000:12250]
+    hours = df_prices.index[12000:12100]
     hours = hours[:len(prices)]  # ensure same length if slicing changed shape
 
     #----------------------------------------------------------------
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     dt = 1.0  # 1 hour steps, for example
 
     # Initial guess: [mu, sigma, theta]
-    initial_guess = [2, 2, 3]
+    initial_guess = [2, 2, 2]
 
     # Bounds: each param gets a (low, high) pair
     # e.g.  mu unconstrained, sigma > 0, theta unconstrained
@@ -180,6 +180,6 @@ if __name__ == "__main__":
     plt.title("Ornstein–Uhlenbeck Fit Comparison")
     plt.show()
 
-    errors = prices-sim_path
-    plt.plot(hours, errors)
-    plt.show()
+    # errors = prices-sim_path
+    # plt.plot(hours, errors)
+    # plt.show()
