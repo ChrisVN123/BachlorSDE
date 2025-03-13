@@ -10,9 +10,12 @@ data = pd.read_csv('/Users/marcusring/Desktop/KU/Tredje år/DatFin/Python/Bahcel
                    delimiter=';')
 data_filtered = data["Spot.price"].replace([0], np.nan).dropna()
 
+# Let values be positive
+data_filtered = data_filtered[data_filtered > 0]
+
 # Check for negative or zero values before log transformation
 if (data_filtered <= 0).any():
-    print("Warning: Negative or zero values detected in Spot prices.")
+    print("We still have negative values.")
 
 logprices = np.log(data_filtered / data_filtered.shift(1)).dropna()
 
