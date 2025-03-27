@@ -75,12 +75,13 @@ def negative_log_likelihood(params, S, dt):
 
     # e^{-theta dt}
     e_term = np.exp(-theta*dt)
+    e_2term = np.exp(-2*theta*dt)
 
     # Theoretical conditional mean for next step
-    M = S_t*e_term + mu*(1 - e_term)
+    M = mu + (S_t - mu)*e_term
 
     # Theoretical conditional variance for next step
-    V = (sigma**2)/(2.0*theta) * (1.0 - np.exp(-2.0*theta*dt))
+    V = (sigma**2*(1-e_2term))/(2*theta)
 
     # Log-likelihood of S_{t+1} given S_t
     n = len(S_t)
@@ -107,17 +108,17 @@ if __name__ == "__main__":
     # Replace with your actual CSV filename/path
     #----------------------------------------------------------------
     data_raw = pd.read_csv("priceData.csv", sep=";")
-    df_prices = data_raw["Spot.price"]
+    df_prices = data_raw["Electricity.Co2.Emission"]
 
     # Example slice: from index=12000 to 12750
     # Add 1e-10 to avoid zero if you do want to keep it strictly positive.
-    prices = df_prices.values[12000:12100]
+    prices = df_prices.values[12000:]
     #prices = np.abs(prices) + 1e-10
     # Drop any NaNs
     prices = prices[~np.isnan(prices)]
 
     # Optional: create a corresponding time index
-    hours = df_prices.index[12000:12100]
+    hours = df_prices.index[12000:]
     hours = hours[:len(prices)]  # ensure same length if slicing changed shape
 
     #----------------------------------------------------------------
@@ -151,6 +152,8 @@ if __name__ == "__main__":
     print("Estimated theta =", theta_hat)
     print("-----------------------")
     print("Estimated mu    =", np.mean(prices))
+    print("Estimated sd    =", np.sqrt(np.var(prices))/2)
+    print("Estimated mu    =", ((np.sqrt(np.var(prices)))/np.mean(prices))/4)
 
     #----------------------------------------------------------------
     # 4) Simulate a new OU path using the fitted parameters
@@ -173,9 +176,9 @@ if __name__ == "__main__":
     #----------------------------------------------------------------
     plt.figure()
     plt.plot(hours, prices, label="Observed prices")
-    plt.plot(hours, sim_path, label="Simulated OU (level space)")
-    plt.plot(hours, np.mean(prices)*np.ones(len(hours)))
-    plt.plot(hours, mu_hat*np.ones(len(hours)))
+    #plt.plot(hours, sim_path, label="Simulated OU (level space)")
+    #plt.plot(hours, np.mean(prices)*np.ones(len(hours)))
+    #plt.plot(hours, mu_hat*np.ones(len(hours)))
     plt.legend()
     plt.title("Ornstein–Uhlenbeck Fit Comparison")
     plt.show()

@@ -64,32 +64,37 @@ def negative_log_likelihood(params, S, dt):
 data_raw = pd.read_csv("priceData.csv", sep=";")
 df = data_raw["Spot.price"]
 
-prices = np.abs(df.values[12000:12750])
+
+
+
+
+prices = np.abs(df.values)#[12000:12750])
 prices = prices[~np.isnan(prices)]+1e-10
+print(np.var(prices))
 
-hours = df.index[12000:12750]
+# hours = df.index[12000:12750]
 
 
-initial_guess = [0.2, 0.4]    # e.g. some guess
-dt = 1
+# initial_guess = [0.2, 0.4]    # e.g. some guess
+# dt = 1
 
-# 3) Optimize
-bounds = [(None, None), (1e-12, None)]  # keep sigma > 0
-result = minimize(
-    fun=negative_log_likelihood,
-    x0=initial_guess,
-    args=(prices, dt),
-    method='L-BFGS-B',
-    bounds=bounds
-)
+# # 3) Optimize
+# bounds = [(None, None), (1e-12, None)]  # keep sigma > 0
+# result = minimize(
+#     fun=negative_log_likelihood,
+#     x0=initial_guess,
+#     args=(prices, dt),
+#     method='L-BFGS-B',
+#     bounds=bounds
+# )
 
-mu_hat, sigma_hat = result.x
-print("Estimated mu =", mu_hat)
-print("Estimated sigma =", sigma_hat)
+# mu_hat, sigma_hat = result.x
+# print("Estimated mu =", mu_hat)
+# print("Estimated sigma =", sigma_hat)
 
-output = simulate_gbm_show(S0=0.49,mu=0.4, sigma=sigma_hat, N=len(prices))
-print(prices.shape, output[:-1].shape, hours[:-2].shape)
-plt.plot(hours, prices)
-plt.plot(hours, output[:-1])
-plt.show()
+# output = simulate_gbm_show(S0=0.49,mu=0.4, sigma=sigma_hat, N=len(prices))
+# print(prices.shape, output[:-1].shape, hours[:-2].shape)
+# plt.plot(hours, prices)
+# plt.plot(hours, output[:-1])
+# plt.show()
 
