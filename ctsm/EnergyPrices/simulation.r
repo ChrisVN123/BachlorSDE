@@ -14,12 +14,12 @@ data <- read.csv("ctsm/EnergyPrices/priceData.csv",
 delete.na <- function(data, n=0) {
   data[rowSums(is.na(data)) <= n,]
 }
-
+plot(x=data$t,y=data$Electricity.Co2.Emission)
 df <- delete.na(data)
 df_time <- df[,'t']
 time <- seq(0,length(df_time)-1,by=1)
 spot <- abs(df[,'Spot.price'])
-
+plot(time,spot,'l')
 
 #Extract a subset of observations
 # num_obs = 1000

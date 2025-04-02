@@ -3,6 +3,9 @@
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+from scipy.stats import norm, t
+from statsmodels.tsa.stattools import acf
 
 # If you want to produce a Plotly figure, import plotly:
 import plotly.graph_objs as go
@@ -34,7 +37,7 @@ def negative_log_likelihood(params, S, dt):
     )
     return -ll
 
-def run_ou_estimation(csv_file="priceData.csv"):
+def simple_ornstein(csv_file="priceData.csv"):
     """
     Runs the OU parameter estimation using data from `csv_file`.
     Returns:
@@ -81,6 +84,15 @@ def run_ou_estimation(csv_file="priceData.csv"):
         X0=X0,
         N=Nsim
     )
+    return hours, prices, sim_path, mu_hat, sigma_hat, theta_hat
+
+def run_ou_estimation(prices, hours, sim_path, mu_hat, sigma_hat, theta_hat):
+    """
+    Runs the OU parameter estimation using data from `csv_file`.
+    Returns:
+      fig: a Plotly figure comparing real vs. simulated data
+      param_text: a string describing the fitted parameters
+    """
 
     # 5) Build a Plotly figure comparing real vs. simulated
     fig = go.Figure()
@@ -108,15 +120,111 @@ def run_ou_estimation(csv_file="priceData.csv"):
     return fig, param_text
 
 
-# If you want to test this file by itself, you can still do so:
-if __name__ == "__main__":
-    # Just test the function here (but it won’t produce a Dash figure):
-    data_raw = pd.read_csv("priceData.csv", sep=";")
-    print(data_raw.columns)
-    df_prices = data_raw["Electricity.Co2.Emission"]    
-    print(df_prices[:10])
 
-    # fig, params = run_ou_estimation("priceData.csv")
-    # print(params)
-    # If you want to display a Plotly figure in a pop-up:
-    # fig.show()
+def plot_residuals_and_acf(prices, simulated_prices, lags):
+    residuals = prices - simulated_prices
+
+    # Fit normal and t-distribution
+    mu, std = norm.fit(residuals)
+    t_df, t_loc, t_scale = t.fit(residuals)
+
+    # Histogram of residuals
+    hist_fig = go.Figure()
+    hist_fig.add_trace(go.Histogram(
+        x=residuals,
+        nbinsx=50,
+        histnorm='probability density',
+        name='Residuals',
+        opacity=0.6
+    ))
+
+    x_range = np.linspace(residuals.min(), residuals.max(), 500)
+    hist_fig.add_trace(go.Scatter(
+        x=x_range,
+        y=norm.pdf(x_range, mu, std),
+        mode='lines',
+        name='Normal Fit'
+    ))
+    hist_fig.add_trace(go.Scatter(
+        x=x_range,
+        y=t.pdf(x_range, t_df, t_loc, t_scale),
+        mode='lines',
+        name='Student-t Fit'
+    ))
+
+    hist_fig.update_layout(title='Histogram of Residuals with Fitted Distributions')
+
+    # ACF of original and simulated prices
+    acf_prices = acf(prices, nlags=lags, fft=True)
+    acf_simulated = acf(simulated_prices, nlags=lags, fft=True)
+
+    acf_fig = go.Figure()
+    acf_fig.add_trace(go.Bar(
+        x=list(range(len(acf_prices))),
+        y=acf_prices,
+        name='Original Prices ACF'
+    ))
+    acf_fig.add_trace(go.Bar(
+        x=list(range(len(acf_simulated))),
+        y=acf_simulated,
+        name='Simulated Prices ACF'
+    ))
+
+    acf_fig.update_layout(
+        title='ACF Comparison',
+        barmode='group',
+        xaxis_title='Lag',
+        yaxis_title='ACF'
+    )
+    return hist_fig, acf_fig
+
+
+# hours, prices, sim_path, mu_hat, sigma_hat, theta_hat = simple_ornstein(csv_file="priceData.csv")
+
+# # Plot 1: Line plot of true prices and sim_path
+# plt.figure()
+# plt.plot(hours, prices, label='Actual Prices')
+# plt.plot(hours, sim_path, label='Simulated Path', linestyle='--')
+# plt.xlabel('Hour')
+# plt.ylabel('Price')
+# plt.title('Actual vs Simulated Prices')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
+
+# # Plot 2: ACF comparison
+# acf_prices = acf(prices, nlags=40)
+# acf_sim = acf(sim_path, nlags=40)
+
+# plt.figure()
+# plt.plot(acf_prices, label='ACF of Prices')
+# plt.plot(acf_sim, label='ACF of Simulated Path', linestyle='--')
+# plt.xlabel('Lag')
+# plt.ylabel('ACF')
+# plt.title('Autocorrelation Comparison')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
+
+# # Plot 3: Histogram of difference + Normal and t-distribution fit
+# diff = prices - sim_path
+# x = np.linspace(min(diff), max(diff), 1000)
+
+# # Fit Normal
+# mu_norm, std_norm = norm.fit(diff)
+# pdf_norm = norm.pdf(x, mu_norm, std_norm)
+
+# # Fit t-distribution
+# df_t, loc_t, scale_t = t.fit(diff)
+# pdf_t = t.pdf(x, df_t, loc=loc_t, scale=scale_t)
+
+# plt.figure()
+# plt.hist(diff, bins=40, density=True, alpha=0.6, label='Difference Histogram')
+# plt.plot(x, pdf_norm, label=f'Normal Fit\nμ={mu_norm:.2f}, σ={std_norm:.2f}')
+# plt.plot(x, pdf_t, label=f't Fit\ndf={df_t:.2f}, loc={loc_t:.2f}, scale={scale_t:.2f}')
+# plt.title('Distribution of Price Differences\n(Actual - Simulated)')
+# plt.xlabel('Difference')
+# plt.ylabel('Density')
+# plt.legend()
+# plt.grid(True)
+# plt.show()

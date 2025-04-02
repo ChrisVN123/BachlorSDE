@@ -55,8 +55,16 @@ electricity_layout = html.Div([
     ], style={'marginBottom': '20px'}),
 
     dcc.Graph(id="ou-graph", style={'width': '100%'}),
-    html.Div(id='ou-params', style={'marginTop': '20px', 'fontWeight': 'bold'})
+    html.Div(id='ou-params', style={'marginTop': '20px', 'fontWeight': 'bold'}),
+    
+    # New plots
+    html.H4("Residuals Histogram"),
+    dcc.Graph(id="residuals-histogram", style={'width': '100%', 'marginBottom': '20px'}),
+    
+    html.H4("ACF Comparison"),
+    dcc.Graph(id="acf-plot", style={'width': '100%'})
 ])
+
 
 # ------------------------------------------------
 # 2. Main layout with top navbar + page content
@@ -254,17 +262,22 @@ def run_simulation(n_clicks, ticker, forecast_days, num_simulations, future_fore
 # ------------------------------------------------
 @app.callback(
     [Output('ou-graph', 'figure'),
-     Output('ou-params', 'children')],
+     Output('ou-params', 'children'),
+     Output('residuals-histogram', 'figure'),
+     Output('acf-plot', 'figure')],
     Input('ou-run-button', 'n_clicks')
 )
 def run_ou_estimation(n_clicks):
     if n_clicks == 0:
-        # Return empty figure
-        return go.Figure(), ""
+        return go.Figure(), "", go.Figure(), go.Figure()
+    hours, prices, sim_path, mu_hat, sigma_hat, theta_hat = Ornstein_prices.simple_ornstein("priceData.csv")
 
-    # Call the function from Ornstein_prices.py
-    fig, param_text = Ornstein_prices.run_ou_estimation("priceData.csv")
-    return fig, param_text
+    fig, param_text = Ornstein_prices.run_ou_estimation(prices, hours, sim_path, mu_hat, sigma_hat, theta_hat)
+
+    hist_plot, acf_plot = Ornstein_prices.plot_residuals_and_acf(prices=prices, simulated_prices=sim_path, lags=30)
+    
+    return fig, param_text, hist_plot, acf_plot
+
 
 # ------------------------------------------------
 # 6. Run the server
