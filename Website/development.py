@@ -69,6 +69,18 @@ def fit_garch(residuals):
     beta = garch_fit.params['beta[1]']
     return omega, alpha, beta
 
+def simulate_GARCH(residuals, omega, alpha, beta):
+    N = residuals.shape[0]
+    sig = np.zeros(N)
+    sig[0] = np.sqrt(omega / (1 - alpha - beta)) if (1 - alpha - beta) > 0 else np.sqrt(omega)
+    for t in range(1, N):
+        if residuals[t-1] < 0:
+            sig[t] = -(np.sqrt(omega + alpha * residuals[t-1]**2 + beta * sig[t-1]**2))
+        else:
+            sig[t] = np.sqrt(omega + alpha * residuals[t-1]**2 + beta * sig[t-1]**2)
+    return sig
+
+
 def simulate_ou_garch(cond, mu, theta, X0, N, omega, alpha, beta, dt=1.0):
     X = np.zeros(N)
     sig = np.zeros(N)
@@ -99,18 +111,12 @@ def main(csv_file='priceData.csv'):
     print(garch_fit.summary())
     cond_vol = garch_fit.conditional_volatility
 
-    # Simulate new data with the same GARCH dynamics
-    simulated = garch_model.simulate(params=garch_fit.params, nobs=len(residuals))
-
-    # Extract the simulated residual series
-    simulated_residuals = simulated['data']
-
-
 
     omega_hat, alpha_hat, beta_hat = fit_garch(residuals)
     ou_garch_path, sig_res = simulate_ou_garch(cond_vol, mu_hat, theta_hat, X0, N, omega_hat, alpha_hat, beta_hat, dt=1)
+    simulated_residuals = simulate_GARCH(residuals, omega_hat, alpha_hat, beta_hat)
 
-    fig, axs = plt.subplots(3, 1, figsize=(10,8), sharex=True)
+    fig, axs = plt.subplots(2, 1, figsize=(10,8), sharex=True)
     axs[0].plot(prices, label='Actual Prices')
     axs[0].plot(ou_path, label='OU Deterministic Path')
     axs[0].set_title('Actual vs OU (Constant Vol) - Deterministic Path')
@@ -119,10 +125,10 @@ def main(csv_file='priceData.csv'):
     axs[1].plot(simulated_residuals, label='GARCH In-Sample Cond Vol', alpha=0.7)
     axs[1].set_title('GARCH In-Sample Volatility vs. Residual')
     axs[1].legend()
-    axs[2].plot(ou_garch_path, label='OU with GARCH', alpha=0.7)
-    axs[2].plot(prices, label='prices', alpha=0.7) 
-    axs[2].set_title('OU with and wihtout GARCH')
-    axs[2].legend()
+    # axs[2].plot(ou_garch_path, label='OU with GARCH', alpha=0.7)
+    # axs[2].plot(prices, label='prices', alpha=0.7) 
+    # axs[2].set_title('OU with and wihtout GARCH')
+    # axs[2].legend()
     plt.tight_layout()
     plt.show()
     garch_fore = garch_fit.forecast(horizon=1)
