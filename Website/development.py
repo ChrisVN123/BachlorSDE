@@ -35,13 +35,11 @@ def negative_log_likelihood(params, S, dt):
     )
     return -ll
 
-def fit_ou_mle(csv_file="priceData.csv"):
+def fit_ou_mle(dt,csv_file="priceData.csv"):
     data_raw = pd.read_csv(csv_file, sep=";")
     df_prices = data_raw["Spot.price"]
     prices = df_prices.dropna().values
     hours = df_prices.index[:len(prices)]
-    prices = prices
-    dt = 1.0
     initial_guess = [2, 2, 2]
     bounds = [(None, None), (1e-12, None), (None, None)]
     result = minimize(
@@ -61,6 +59,33 @@ def fit_ou_mle(csv_file="priceData.csv"):
 # 2. GARCH on the Residuals + Time-Varying Volatility OU
 ###############################################################################
 
+def compute_ou_residuals(prices, mu, sigma, theta, dt):
+    """
+    Given the fitted OU parameters (mu, sigma, theta) and the price series,
+    return the standardized OU residuals.
+    """
+    e_term = np.exp(-theta * dt)  # e^(-theta*dt)
+    # The OU model implies a constant one-step variance:
+    V = (sigma**2)/(2.0*theta) * (1.0 - np.exp(-2.0*theta*dt))
+    if V <= 0:
+        raise ValueError("Computed OU variance is non-positive. Check parameters.")
+
+    residuals = []
+    for t in range(len(prices) - 1):
+        S_t = prices[t]
+        S_tp1 = prices[t+1]
+        # Mean for step t->t+1
+        M_t = S_t*e_term + mu*(1.0 - e_term)
+        # Standardized residual
+        r_t = (S_tp1 - M_t) / np.sqrt(V)
+        residuals.append(r_t)
+    
+    return np.array(residuals)
+
+
+
+
+
 def fit_garch(residuals):
     garch_model = arch_model(residuals, p=1, q=1, vol='GARCH', dist='normal')
     garch_fit = garch_model.fit(disp='off')
@@ -74,24 +99,26 @@ def simulate_GARCH(residuals, omega, alpha, beta):
     sig = np.zeros(N)
     sig[0] = np.sqrt(omega / (1 - alpha - beta)) if (1 - alpha - beta) > 0 else np.sqrt(omega)
     for t in range(1, N):
-        if residuals[t-1] < 0:
-            sig[t] = -(np.sqrt(omega + alpha * residuals[t-1]**2 + beta * sig[t-1]**2))
-        else:
-            sig[t] = np.sqrt(omega + alpha * residuals[t-1]**2 + beta * sig[t-1]**2)
+        sig[t] = np.sqrt(omega + alpha * residuals[t-1]**2 + beta * sig[t-1]**2)
     return sig
 
 
-def simulate_ou_garch(cond, mu, theta, X0, N, omega, alpha, beta, dt=1.0):
+def simulate_ou_garch(sigma, mu, theta, X0, N, omega, alpha, beta, dt):
     X = np.zeros(N)
     sig = np.zeros(N)
     eps = np.zeros(N)
+    N = sigma.shape[0]
+    
+    dB = np.sqrt(dt) * np.random.normal(0, 1, N-1)
+
     X[0] = X0
     sig[0] = np.sqrt(omega / (1 - alpha - beta)) if (1 - alpha - beta) > 0 else np.sqrt(omega)
     for t in range(1, N):
-        eps[t-1] = np.random.normal()
+        eps[t-1] = np.random.normal(0,np.sqrt(sig[t-1]))
         sig[t] = np.sqrt(omega + alpha * eps[t-1]**2 + beta * sig[t-1]**2)
-        eps[t] = np.random.normal(0,1)
-        X[t] = X[t-1] + theta * (mu - X[t-1]) * dt + cond[t] * eps[t]#sig[t]
+        diffusion = sigma[t] * dB[t-1]
+
+        X[t] = X[t-1] + theta * (mu - X[t-1]) * dt + diffusion
     return X, sig
 
 ###############################################################################
@@ -99,43 +126,45 @@ def simulate_ou_garch(cond, mu, theta, X0, N, omega, alpha, beta, dt=1.0):
 ###############################################################################
 
 def main(csv_file='priceData.csv'):
-    hours, prices, sim_path, mu_hat, sigma_hat, theta_hat = fit_ou_mle(csv_file)
+    dt =  1 #/ (24 * 365)
+    hours, prices, sim_path, mu_hat, sigma_hat, theta_hat = fit_ou_mle(dt, csv_file)
     print(f'[OU Params] mu={mu_hat:.4f}, sigma={sigma_hat:.4f}, theta={theta_hat:.4f}')
     X0 = prices[0]
     N = len(prices)
     ou_path = simulate_ou(mu_hat, theta_hat, sigma_hat, 1.0, X0, N)[0]
     residuals = prices - ou_path
 
-    garch_model = arch_model(residuals, p=2, q=1, o=1, vol='GARCH', dist='normal')
+    garch_model = arch_model(prices, p=1, q=1, o=1, vol='GARCH', dist='normal')
     garch_fit = garch_model.fit(update_freq=0, disp='off')
     print(garch_fit.summary())
     cond_vol = garch_fit.conditional_volatility
 
 
     omega_hat, alpha_hat, beta_hat = fit_garch(residuals)
-    ou_garch_path, sig_res = simulate_ou_garch(cond_vol, mu_hat, theta_hat, X0, N, omega_hat, alpha_hat, beta_hat, dt=1)
     simulated_residuals = simulate_GARCH(residuals, omega_hat, alpha_hat, beta_hat)
+    print(np.mean(simulated_residuals), np.var(simulated_residuals))
+    ou_garch_path, sig_res = simulate_ou_garch(simulated_residuals, mu_hat, theta_hat, X0, N, omega_hat, alpha_hat, beta_hat, dt)
 
-    fig, axs = plt.subplots(2, 1, figsize=(10,8), sharex=True)
+    fig, axs = plt.subplots(3, 1, figsize=(10,8), sharex=True)
     axs[0].plot(prices, label='Actual Prices')
     axs[0].plot(ou_path, label='OU Deterministic Path')
     axs[0].set_title('Actual vs OU (Constant Vol) - Deterministic Path')
     axs[0].legend()
-    axs[1].plot(residuals, label='OU Residuals', alpha=0.7)
-    axs[1].plot(simulated_residuals, label='GARCH In-Sample Cond Vol', alpha=0.7)
-    axs[1].set_title('GARCH In-Sample Volatility vs. Residual')
+    axs[1].plot(simulated_residuals, label='Sim OU Residuals', alpha=0.7)
+    axs[1].plot(residuals, label='OU-Price Residuals', alpha=0.7)
+    axs[1].set_title('Residuals and GARCH')
     axs[1].legend()
-    # axs[2].plot(ou_garch_path, label='OU with GARCH', alpha=0.7)
-    # axs[2].plot(prices, label='prices', alpha=0.7) 
-    # axs[2].set_title('OU with and wihtout GARCH')
-    # axs[2].legend()
+    axs[2].plot(prices, label='OU GARCH', alpha=0.7)
+    axs[2].plot(ou_garch_path, label='prices', alpha=0.7) 
+    axs[2].set_title('OU GARCH and Prices')
+    axs[2].legend()
+
     plt.tight_layout()
     plt.show()
     garch_fore = garch_fit.forecast(horizon=1)
     var_fore_t1 = garch_fore.variance.values[-1, 0]
     std_fore_t1 = np.sqrt(var_fore_t1)
     print(f'One-step-ahead GARCH forecast for next vol: {std_fore_t1:.4f}')
-    dt = 1.0
     next_price_det = ou_path[-1] + theta_hat*(mu_hat - ou_path[-1])*dt
     next_shock = std_fore_t1 * np.random.normal()
     next_price_stoch = next_price_det + next_shock
