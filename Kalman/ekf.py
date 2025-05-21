@@ -6,6 +6,7 @@ import statsmodels.api as sm
 import pandas as pd
 import scipy.stats as st
 from sklearn.linear_model import LinearRegression
+import scipy.stats as stats
 
 # Simulate CIR process
 def simulate_cir(kappa, theta, sigma, x0, dt, n):
@@ -262,6 +263,36 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
+
+import scipy.stats as stats
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+# … after you have your `residuals` array …
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+# 1) Histogram
+axes[0].hist(residuals, bins=30, edgecolor='black')
+axes[0].axhline(0, color='black', linestyle='--')
+axes[0].set_title("Residual Histogram")
+axes[0].set_xlabel("Residual")
+axes[0].set_ylabel("Frequency")
+
+# 2) QQ-plot
+stats.probplot(residuals, dist="norm", plot=axes[1])
+axes[1].set_title("QQ-Plot")
+
+# 3) ACF plot
+sm.graphics.tsa.plot_acf(residuals, lags=30, ax=axes[2])
+axes[2].set_title("ACF of Residuals")
+axes[2].set_xlabel("Lag")
+axes[2].set_ylabel("Autocorrelation")
+
+plt.tight_layout()
+plt.show()
+
+
 plt.figure(figsize=(10, 4))
 plt.hist(residuals, bins=30)
 plt.axhline(0, color='black', linestyle='--')
@@ -303,7 +334,7 @@ lags, gamma_emp = empirical_variogram(increments, max_lag=50)
 gamma_theory = (sigma_hat**2 / (2 * kappa_hat)) * (1 - np.exp(-kappa_hat * lags * dt))
 
 plt.figure(figsize=(8,5))
-plt.plot(lags*dt, gamma_emp, 'o', label="Empirical variogram")
+#plt.plot(lags*dt, gamma_emp, 'o', label="Empirical variogram")
 plt.plot(lags*dt, gamma_theory, '-', label="OU theory (fitted)")
 plt.xlabel("Lag (time units)")
 plt.ylabel("Semivariance")
@@ -311,6 +342,28 @@ plt.title("Increment variogram vs. OU theory")
 plt.legend()
 plt.show()
 
+Var_inf = theta_hat * sigma_hat**2 / (2 * kappa_hat)
+gamma_theo = Var_inf * (1 - np.exp(-kappa_hat * lags * dt))
+
+plt.figure(figsize=(8,5))
+plt.plot(lags*dt, gamma_emp, 'o', label="Empirical CIR Residual Variogram")
+plt.plot(lags*dt, gamma_theo, '-', label="Theoretical CIR Semivariogram")
+plt.xlabel("Lag (time units)")
+plt.ylabel("Semivariance")
+plt.title("CIR EKF Residual Variogram vs. Theory")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+#plt.show()
+
+errs = test_prices - x_combined_forecast[len(train_prices):]
+l_e, g_e = empirical_variogram(errs,24)
+plt.figure()
+plt.plot(l_e, g_e, 'o-')
+plt.title('Error Variogram (Out‐of‐Sample)')
+plt.xlabel('Lag')
+plt.ylabel('Semivariance')
+plt.show()
 
 # 3) Variogram of the EKF *residuals* to check for leftover structure
 resid = train_prices - x_estimated
