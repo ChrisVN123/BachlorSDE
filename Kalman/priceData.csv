@@ -1,4 +1,4 @@
-"t";"Electricity.Co2.Emission";"Spot.price";"hour";"dayOfWeek";"workDay"
+"index";"t";"Electricity.Co2.Emission";"Spot.price";"hour";"dayOfWeek";"workDay"
 "1";2022-09-19;106.583333333333;0.624;1;"Monday";"workDay"
 "2";2022-09-19;125.583333333333;0.731;2;"Monday";"workDay"
 "3";2022-09-19;125.75;1.26;3;"Monday";"workDay"
