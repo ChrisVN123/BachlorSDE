@@ -21,9 +21,8 @@ dt = 1
 
 # Parameter sets: (theta, mu, sigma, X0)
 param_sets = [
-    (0.7, 1.0, 0.4, 1.0),
-    (0.7, 3.0, 0.6, 3.0),
-    (0.7, 7.0, 0.9, 7.0),
+    (0.7, 1.0, 0.5, 1.0),
+    (0.7, 7.0, 0.5, 7.0),
 ]
 
 plt.figure(figsize=(10, 6))
@@ -36,4 +35,5 @@ plt.title("Ornstein–Uhlenbeck Simulations with Distinct Parameters")
 plt.xlabel("Time")
 plt.ylabel("X(t)")
 plt.legend(loc="upper left")
+plt.ylim([-0.5,10])
 plt.show()
